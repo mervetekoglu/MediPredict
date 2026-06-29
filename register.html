@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediPredict | Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="navbar">
+        <h1 class="logo">MediPredict.</h1>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/history">History</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/login" class="logout-btn">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="main-container">
+        <div class="login-box">
+            <h2>Create Account</h2>
+            <p>Join MediPredict today to keep track of your health analysis.</p>
+            
+            <form class="login-form" method="POST" action="/register" autocomplete="off">
+                {% if error %}
+                <p style="color: red; text-align: center;">{{ error }}</p>
+                {% endif %}
+                
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" name="username" placeholder="Your name" required>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="student@aydin.edu.tr" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Min. 6 characters" required>
+                </div>
+                <div class="input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" name="confirm_password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="predict-btn">Sign Up</button>
+            </form>
+
+            <div class="register-link">
+                <p>Already have an account? <a href="login.html">Login here</a></p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

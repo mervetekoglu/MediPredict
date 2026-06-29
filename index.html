@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediPredict | Symptom Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="navbar">
+        <h1 class="logo">MediPredict.</h1>
+        <ul class="nav-links">
+            <li><a href="/" style="color: var(--pink-dark);">Home</a></li>
+            <li><a href="/history">History</a></li>
+            {% if session.username %}
+                <li><a href="/logout">Logout ({{ session.username }})</a></li>
+            {% else %}
+                <li><a href="/login">Login</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="main-container">
+
+        <div class="welcome-section">
+            <h2>How are you feeling today?</h2>
+            <p>Select the symptoms you are experiencing and let our system predict possible conditions.</p>
+        </div>
+
+        <div class="checker-card">
+            <h3>Symptom Checker</h3>
+
+            <div class="search-area">
+                <div style="flex:1; position:relative;">
+                    <input type="text" id="symptomInput" placeholder="Type a symptom (e.g., headache, fever...)">
+                    <div id="suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #d1c4e9; border-radius:8px; z-index:100; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>
+                </div>
+                <button class="add-btn" onclick="addSymptom()">Add</button>
+            </div>
+
+            <div class="symptom-list" id="symptomList"></div>
+
+            <form method="POST" action="/predict" id="predictForm">
+                <div id="hiddenSymptoms"></div>
+                <button type="submit" class="predict-btn">Predict Disease</button>
+            </form>
+
+            {% if disease %}
+    <div class="result-card">
+        <h3>🔍 Prediction Result</h3>
+        <p><strong>Predicted Disease:</strong> {{ disease }}</p>
+        <p><strong>Risk Level:</strong> 
+        <span class="badge badge-{{ risk.lower() }}">{{ risk }}</span>
+        </p>
+        <p><strong>Symptoms Entered:</strong> {{ selected_symptoms | join(', ') }}</p>
+    
+        <hr style="border: 1px solid #f0e6f5; margin: 15px 0;">
+    
+        <p><strong>📋 Description:</strong></p>
+        <p style="color: #7a6b75;">{{ description }}</p>
+    
+        {% if precautions %}
+    <p><strong>💊 Precautions:</strong></p>
+    <ul style="color: #7a6b75; padding-left: 20px;">
+        {% for p in precautions %}
+        <li>{{ p }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endif %}
+
+            <div class="disclaimer">
+                <p><strong>Note:</strong> This is a graduation project for educational purposes only. It does not replace professional medical advice.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        
+    let symptoms = [];
+
+    
+    const allSymptoms = [
+        "itching", "skin_rash", "nodal_skin_eruptions", "continuous_sneezing", "shivering",
+        "chills", "joint_pain", "stomach_pain", "acidity", "ulcers_on_tongue",
+        "muscle_wasting", "vomiting", "burning_micturition", "spotting_urination", "fatigue",
+        "weight_gain", "anxiety", "cold_hands_and_feets", "mood_swings", "weight_loss",
+        "restlessness", "lethargy", "patches_in_throat", "irregular_sugar_level", "cough",
+        "high_fever", "sunken_eyes", "breathlessness", "sweating", "dehydration",
+        "indigestion", "headache", "yellowish_skin", "dark_urine", "nausea",
+        "loss_of_appetite", "pain_behind_the_eyes", "back_pain", "constipation", "abdominal_pain",
+        "diarrhoea", "mild_fever", "yellow_urine", "yellowing_of_eyes", "acute_liver_failure",
+        "fluid_overload", "swelling_of_stomach", "swelled_lymph_nodes", "malaise", "blurred_and_distorted_vision",
+        "phlegm", "throat_irritation", "redness_of_eyes", "sinus_pressure", "runny_nose",
+        "congestion", "chest_pain", "weakness_in_limbs", "fast_heart_rate", "pain_during_bowel_movements",
+        "pain_in_anal_region", "bloody_stool", "irritation_in_anus", "neck_stiffness", "word_blindness",
+        "blurred_vision", "bladder_discomfort", "foul_smell_of_urine", "continuous_feel_of_urine",
+        "passage_of_gases", "internal_itching", "toxic_look_typhos", "depression", "irritability",
+        "muscle_pain", "altered_sensorium", "red_spots_over_body", "belly_pain", "abnormal_menstruation",
+        "dischromic_patches", "watering_from_eyes", "increased_appetite", "polyuria", "family_history",
+        "mucoid_sputum", "rusty_sputum", "lack_of_concentration", "visual_disturbances", "receiving_blood_transfusion",
+        "receiving_unsterile_injections", "coma", "stomach_bleeding", "distention_of_abdomen",
+        "history_of_alcohol_consumption", "fluid_overload", "blood_in_sputum", "prominent_veins_on_calf",
+        "palpitations", "painful_walking", "pus_filled_pimples", "blackheads", "scurring",
+        "skin_peeling", "silver_like_dusting", "small_dents_in_nails", "inflammatory_nails", "blister",
+        "red_sore_around_nose", "yellow_crust_ooze", "fever"
+    ];
+
+    function showSuggestions(value) {
+        const suggestionBox = document.getElementById('suggestions');
+        suggestionBox.innerHTML = '';
+        if (value.length < 2) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+        const filtered = allSymptoms.filter(s => s.includes(value.toLowerCase()));
+        if (filtered.length === 0) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+        filtered.slice(0, 6).forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = s;
+            div.onclick = () => {
+                document.getElementById('symptomInput').value = s;
+                suggestionBox.style.display = 'none';
+                addSymptom();
+            };
+            suggestionBox.appendChild(div);
+        });
+        suggestionBox.style.display = 'block';
+    }
+
+    function addSymptom() {
+        const input = document.getElementById('symptomInput');
+        const value = input.value.trim();
+        if (value && !symptoms.includes(value)) {
+            symptoms.push(value);
+            renderSymptoms();
+            input.value = '';
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    }
+
+    function removeSymptom(s) {
+        symptoms = symptoms.filter(x => x !== s);
+        renderSymptoms();
+    }
+
+    function renderSymptoms() {
+        const list = document.getElementById('symptomList');
+        const hidden = document.getElementById('hiddenSymptoms');
+        list.innerHTML = '';
+        hidden.innerHTML = '';
+        symptoms.forEach(s => {
+            list.innerHTML += `<span class="symptom-tag">${s} <span onclick="removeSymptom('${s}')">&times;</span></span>`;
+            hidden.innerHTML += `<input type="hidden" name="symptoms" value="${s}">`;
+        });
+    }
+
+    document.getElementById('symptomInput').addEventListener('input', function() {
+        showSuggestions(this.value);
+    });
+
+    document.getElementById('symptomInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addSymptom();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-area')) {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    });
+
+    </script>
+
+</body>
+</html>
